@@ -10,7 +10,6 @@ export function Header() {
       <div>
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-accent-700">
           <span className="h-2 w-2 rounded-full bg-accent-500" />
-          EINFACH. SCHNELL. VERSTÄNDLICH.
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">Live Speech to Text</h1>
         <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
