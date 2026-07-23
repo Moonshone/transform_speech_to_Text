@@ -9,9 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@huggingface/jinja": "0.5.2",
     "next": "14.2.31",
+    "onnxruntime-common": "1.22.0-dev.20250409-89f8206ba4",
+    "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "@huggingface/transformers": "3.8.1"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
