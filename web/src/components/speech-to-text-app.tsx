@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { BrowserTranscriber, type TranscriberStatus } from "../lib/browser-transcriber";
+import { AudioUploadCard } from "./audio-upload-card";
 import { RecorderCard } from "./recorder-card";
 import { TranscriptCard } from "./transcript-card";
 
@@ -24,10 +26,26 @@ export function SpeechToTextApp() {
   const [interimText, setInterimText] = useState("");
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"Mikrofon" | "Upload" | null>(null);
+  const [tab, setTab] = useState<"microphone" | "upload">("microphone");
+  const [uploadStatus, setUploadStatus] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isUploadBusy, setIsUploadBusy] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const shouldRecognizeRef = useRef(false);
   const restartCountRef = useRef(0);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcriberRef = useRef<BrowserTranscriber | null>(null);
+
+  const handleWorkerStatus = (status: TranscriberStatus): void => {
+    if (status.type === "loading") {
+      setUploadProgress(status.progress ?? null);
+      setUploadStatus(status.progress === undefined ? "Spracherkennungsmodell wird geladen …" : "Modell wird geladen");
+    } else if (status.type === "ready") {
+      setUploadProgress(null);
+      setUploadStatus(`Modell bereit (${status.backend === "webgpu" ? "WebGPU" : "WASM-Fallback"})`);
+    } else if (status.type === "transcribing") setUploadStatus("Transkription läuft …");
+  };
 
   const stopRecognition = (): void => {
     shouldRecognizeRef.current = false;
@@ -40,6 +58,7 @@ export function SpeechToTextApp() {
 
   const startRecognition = (): void => {
     setError(null);
+    setSource("Mikrofon");
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) {
       setError("Dieser Browser unterstützt die Web Speech API nicht. Bitte verwende Chrome oder Edge.");
@@ -102,11 +121,38 @@ export function SpeechToTextApp() {
     }
   };
 
-  useEffect(() => () => {
-    shouldRecognizeRef.current = false;
-    if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
-    recognitionRef.current?.abort();
+  useEffect(() => {
+    transcriberRef.current = new BrowserTranscriber(handleWorkerStatus);
+    return () => {
+      shouldRecognizeRef.current = false;
+      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+      recognitionRef.current?.abort();
+      transcriberRef.current?.terminate();
+    };
   }, []);
+
+  const transcribeUpload = async (file: File): Promise<void> => {
+    if (isUploadBusy) return;
+    stopRecognition();
+    setError(null);
+    setUploadProgress(null);
+    setUploadStatus("Audio wird vorbereitet …");
+    setIsUploadBusy(true);
+    try {
+      const text = await transcriberRef.current!.transcribe(file);
+      setFinalText(text);
+      setInterimText("");
+      setSource("Upload");
+      setUploadStatus("Transkription abgeschlossen");
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : "Transkription fehlgeschlagen.";
+      setError(message);
+      setUploadStatus("Transkription fehlgeschlagen");
+    } finally {
+      setUploadProgress(null);
+      setIsUploadBusy(false);
+    }
+  };
 
   const clearTranscription = (): void => {
     stopRecognition();
@@ -114,14 +160,21 @@ export function SpeechToTextApp() {
     setFinalText("");
     setInterimText("");
     setError(null);
+    setSource(null);
   };
 
   const displayedText = appendTranscript(finalText, interimText);
 
   return (
-    <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <RecorderCard onRecordingStart={startRecognition} onRecordingStop={stopRecognition} onReset={clearTranscription} />
-      <TranscriptCard text={displayedText} isTranscribing={isRecognizing} error={error} onClear={() => { setFinalText(""); setInterimText(""); setError(null); }} />
+    <div className="mt-10">
+      <div className="mb-5 inline-flex rounded-xl bg-slate-200/70 p-1" role="tablist" aria-label="Eingabequelle">
+        <button type="button" role="tab" aria-selected={tab === "microphone"} disabled={isUploadBusy} onClick={() => setTab("microphone")} className={`rounded-lg px-5 py-2.5 text-sm font-semibold ${tab === "microphone" ? "bg-white text-accent-700 shadow-sm" : "text-slate-600"}`}>Mikrofon</button>
+        <button type="button" role="tab" aria-selected={tab === "upload"} disabled={isRecognizing} onClick={() => setTab("upload")} className={`rounded-lg px-5 py-2.5 text-sm font-semibold ${tab === "upload" ? "bg-white text-accent-700 shadow-sm" : "text-slate-600"}`}>Audiodatei hochladen</button>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        {tab === "microphone" ? <RecorderCard onRecordingStart={startRecognition} onRecordingStop={stopRecognition} onReset={clearTranscription} /> : <AudioUploadCard busy={isUploadBusy} status={uploadStatus} progress={uploadProgress} error={error} onTranscribe={transcribeUpload} onError={setError} />}
+        <TranscriptCard text={displayedText} source={source} status={isUploadBusy ? uploadStatus : undefined} isTranscribing={isRecognizing || isUploadBusy} error={tab === "microphone" ? error : null} onClear={() => { setFinalText(""); setInterimText(""); setError(null); setSource(null); }} />
+      </div>
     </div>
   );
 }

@@ -17,11 +17,13 @@ function ActionButton({ label, icon, onClick, disabled = false }: ActionButtonPr
 interface TranscriptCardProps {
   text: string;
   isTranscribing: boolean;
+  source: "Mikrofon" | "Upload" | null;
+  status?: string;
   error: string | null;
   onClear: () => void;
 }
 
-export function TranscriptCard({ text, isTranscribing, error, onClear }: TranscriptCardProps) {
+export function TranscriptCard({ text, isTranscribing, source, status, error, onClear }: TranscriptCardProps) {
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
   const handleCopy = (): void => {
@@ -44,9 +46,9 @@ export function TranscriptCard({ text, isTranscribing, error, onClear }: Transcr
           <p className="text-sm font-semibold text-accent-700">TRANSKRIPTION</p>
           <h2 id="transcript-heading" className="mt-1 text-2xl font-bold tracking-tight text-ink">Erkannter Text</h2>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500">{wordCount} {wordCount === 1 ? "Wort" : "Wörter"}</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-500">{source ? `${source} · ` : ""}{wordCount} {wordCount === 1 ? "Wort" : "Wörter"}</span>
       </div>
-      {isTranscribing && <p className="mb-4 rounded-xl bg-accent-50 px-4 py-3 text-sm font-medium text-accent-700" role="status">Transkription läuft …</p>}
+      {isTranscribing && <p className="mb-4 rounded-xl bg-accent-50 px-4 py-3 text-sm font-medium text-accent-700" role="status">{status ?? "Transkription läuft …"}</p>}
       {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
       <label htmlFor="transcript" className="sr-only">Erkannter Text</label>
       <textarea id="transcript" readOnly value={text} placeholder="Dein gesprochener Text erscheint während der Aufnahme hier." className="min-h-52 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-7 text-ink placeholder:text-slate-400" />
