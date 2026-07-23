@@ -4,16 +4,16 @@ Lokale Speech-to-Text-App mit Python, Streamlit und faster-whisper.
 
 ## Funktionen
 
-- Mikrofonaufnahme oder Audio-Upload
-- automatische oder manuelle Sprachauswahl
+- Upload von WAV-, MP3-, M4A-, OGG- und FLAC-Dateien
+- automatische Spracherkennung
 - lokale Transkription mit Whisper
-- TXT- und SRT-Export
+- TXT-Export
 - automatische Löschung temporärer Audiodateien
 
 ## Installation
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 ```
 
 Windows:
@@ -32,6 +32,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
+
+Beim ersten Start lädt `faster-whisper` das Modell `base` herunter. Die App
+führt die Transkription lokal auf der CPU mit `compute_type="int8"` aus und
+hält das geladene Modell für weitere Transkriptionen im Streamlit-Cache.
 
 ## Tests
 
