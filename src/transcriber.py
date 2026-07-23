@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from faster_whisper import WhisperModel
-
-from src.config import DEFAULT_COMPUTE_TYPE, DEFAULT_DEVICE, DEFAULT_MODEL_SIZE
 
 
 @dataclass(frozen=True)
@@ -23,19 +20,14 @@ class TranscriptionResult:
 
 def transcribe_audio(
     audio_path: str | Path,
-    model_size: str = DEFAULT_MODEL_SIZE,
-    language: Optional[str] = None,
-    device: str = DEFAULT_DEVICE,
-    compute_type: str = DEFAULT_COMPUTE_TYPE,
+    model: WhisperModel,
 ) -> TranscriptionResult:
     path = Path(audio_path)
     if not path.is_file():
         raise FileNotFoundError(f"Audiodatei nicht gefunden: {path}")
 
-    model = WhisperModel(model_size, device=device, compute_type=compute_type)
     raw_segments, info = model.transcribe(
         str(path),
-        language=language,
         vad_filter=True,
     )
 
