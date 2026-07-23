@@ -10,6 +10,15 @@ interface TranscriptionResponse {
   error?: string;
 }
 
+async function readTranscriptionResponse(response: Response): Promise<TranscriptionResponse> {
+  const responseBody = await response.text();
+  try {
+    return JSON.parse(responseBody) as TranscriptionResponse;
+  } catch {
+    return { error: responseBody || "Die Transkription ist fehlgeschlagen." };
+  }
+}
+
 function recordingFileName(type: string): string {
   if (type.includes("mp4")) return "aufnahme.m4a";
   if (type.includes("ogg")) return "aufnahme.ogg";
@@ -49,7 +58,7 @@ export function SpeechToTextApp() {
         body: formData,
         signal: controller.signal,
       });
-      const result = (await response.json()) as TranscriptionResponse;
+      const result = await readTranscriptionResponse(response);
 
       if (!response.ok) {
         throw new Error(result.error || "Die Transkription ist fehlgeschlagen.");
