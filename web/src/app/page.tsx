@@ -12,7 +12,7 @@ export default function Home() {
         <TranscriptCard />
       </div>
       <div className="mt-6"><StatusBar /></div>
-      <p className="mt-8 text-center text-xs text-slate-400">UI-Prototyp · Noch keine Audioverarbeitung aktiv</p>
+      <p className="mt-8 text-center text-xs text-slate-400">Lokale Audioaufnahme · Keine Audiodaten werden versendet</p>
     </main>
   );
 }
