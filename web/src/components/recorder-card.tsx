@@ -73,7 +73,10 @@ export function RecorderCard() {
       isMountedRef.current = false;
       if (timerRef.current !== null) clearInterval(timerRef.current);
       const recorder = mediaRecorderRef.current;
-      if (recorder?.state !== "inactive") recorder.stop();
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
       streamRef.current?.getTracks().forEach((track) => track.stop());
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     };
