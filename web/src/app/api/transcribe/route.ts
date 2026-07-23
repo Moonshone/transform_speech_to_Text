@@ -2,8 +2,32 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+interface OpenAIErrorResponse {
+  error?: {
+    code?: string;
+    message?: string;
+    type?: string;
+  };
+}
+
+function transcriptionError(status: number, details: OpenAIErrorResponse): string {
+  if (status === 401 || status === 403) {
+    return "Der Audiodienst ist nicht korrekt autorisiert. Bitte prüfe den OPENAI_API_KEY in Vercel.";
+  }
+
+  if (status === 429) {
+    return "Das Kontingent des Audiodienstes ist aufgebraucht oder gerade ausgelastet. Bitte prüfe das OpenAI-Konto und versuche es später erneut.";
+  }
+
+  if (status === 400 && (details.error?.code === "invalid_value" || details.error?.type === "invalid_request_error")) {
+    return "Das Audioformat der Aufnahme wurde vom Audiodienst nicht akzeptiert. Bitte nimm einen neuen, mindestens eine Sekunde langen Audioclip auf.";
+  }
+
+  return "Der Audiodienst konnte die Aufnahme nicht transkribieren. Bitte versuche es erneut.";
+}
+
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json({ error: "Die Transkription ist serverseitig nicht konfiguriert." }, { status: 500 });
   }
@@ -22,7 +46,7 @@ export async function POST(request: Request) {
 
   const openAiFormData = new FormData();
   openAiFormData.append("file", audio, audio.name || "aufnahme.webm");
-  openAiFormData.append("model", "gpt-4o-mini-transcribe");
+  openAiFormData.append("model", process.env.OPENAI_TRANSCRIPTION_MODEL?.trim() || "gpt-4o-mini-transcribe");
 
   try {
     const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
@@ -32,8 +56,15 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-      console.error("OpenAI transcription failed:", response.status, await response.text());
-      return NextResponse.json({ error: "Der Audiodienst konnte die Aufnahme nicht transkribieren. Bitte versuche es erneut." }, { status: 502 });
+      const responseBody = await response.text();
+      let details: OpenAIErrorResponse = {};
+      try {
+        details = JSON.parse(responseBody) as OpenAIErrorResponse;
+      } catch {
+        // Keep the generic message if the upstream response is not JSON.
+      }
+      console.error("OpenAI transcription failed:", response.status, responseBody);
+      return NextResponse.json({ error: transcriptionError(response.status, details) }, { status: 502 });
     }
 
     const result = (await response.json()) as { text?: unknown };

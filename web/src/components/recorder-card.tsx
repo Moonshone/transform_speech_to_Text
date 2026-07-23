@@ -6,6 +6,19 @@ import { MicrophoneIcon } from "./icons";
 
 type RecorderStatus = "idle" | "recording" | "stopped";
 
+const preferredMimeTypes = [
+  "audio/webm;codecs=opus",
+  "audio/mp4;codecs=mp4a.40.2",
+  "audio/ogg;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg",
+];
+
+function supportedMimeType(): string | undefined {
+  return preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
+}
+
 const statusLabels: Record<RecorderStatus, string> = {
   idle: "Mikrofon nicht aktiv",
   recording: "Aufnahme läuft",
@@ -118,7 +131,8 @@ export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
 
       let recorder: MediaRecorder;
       try {
-        recorder = new MediaRecorder(stream);
+        const mimeType = supportedMimeType();
+        recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       } catch (error) {
         stopStream();
         throw error;
