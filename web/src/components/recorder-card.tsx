@@ -34,7 +34,12 @@ function microphoneErrorMessage(error: unknown): string {
   return "Das Mikrofon konnte nicht gestartet werden. Bitte überprüfe dein Gerät und versuche es erneut.";
 }
 
-export function RecorderCard() {
+interface RecorderCardProps {
+  onRecordingReady: (recording: Blob) => Promise<void>;
+  onReset: () => void;
+}
+
+export function RecorderCard({ onRecordingReady, onReset }: RecorderCardProps) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [chunkCount, setChunkCount] = useState(0);
@@ -141,6 +146,7 @@ export function RecorderCard() {
         revokeAudioUrl();
         audioUrlRef.current = url;
         setAudioUrl(url);
+        void onRecordingReady(recording);
       };
 
       recorder.onerror = (): void => {
@@ -194,6 +200,7 @@ export function RecorderCard() {
     setElapsedSeconds(0);
     setErrorMessage(null);
     setStatus("idle");
+    onReset();
   };
 
   const isRecording = status === "recording";
