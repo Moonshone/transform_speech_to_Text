@@ -23,4 +23,5 @@ export function SettingsIcon(props: IconProps) {
 export function CopyIcon(props: IconProps) { return <svg {...defaults} {...props}><rect x="8" y="8" width="11" height="11" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>; }
 export function TrashIcon(props: IconProps) { return <svg {...defaults} {...props}><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" /></svg>; }
 export function DownloadIcon(props: IconProps) { return <svg {...defaults} {...props}><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M5 20h14" /></svg>; }
+export function EmailIcon(props: IconProps) { return <svg {...defaults} {...props}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg>; }
 export function ShieldIcon(props: IconProps) { return <svg {...defaults} {...props}><path d="M12 3 5.5 5.5v5.75c0 4.3 2.7 7.75 6.5 9.75 3.8-2 6.5-5.45 6.5-9.75V5.5L12 3Z" /><path d="m9 12 2 2 4-4" /></svg>; }
