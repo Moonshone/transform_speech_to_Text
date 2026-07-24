@@ -1,5 +1,32 @@
 import path from "node:path";
 
+const ORT_BUNDLE = /(?:^|\/)ort\.bundle\.min(?:\.[\w-]+)?\.mjs$/;
+
+class PreserveOrtModulePlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap("PreserveOrtModulePlugin", (compilation) => {
+      const { Compilation } = compiler.webpack;
+      compilation.hooks.processAssets.tap(
+        {
+          name: "PreserveOrtModulePlugin",
+          // Run immediately before JavaScript minimizers. Terser skips assets
+          // whose metadata says that they have already been minimized.
+          stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE - 1,
+        },
+        () => {
+          for (const asset of compilation.getAssets()) {
+            if (!ORT_BUNDLE.test(asset.name)) continue;
+            compilation.updateAsset(asset.name, asset.source, {
+              ...asset.info,
+              minimized: true,
+            });
+          }
+        },
+      );
+    });
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -13,21 +40,10 @@ const nextConfig = {
       "node_modules/@huggingface/transformers/dist/transformers.web.js",
     );
 
-    if (!dev) {
-      // onnxruntime-web ships this file already minified and as an ES module.
-      // Running it through Next's Terser pass a second time makes Terser parse
-      // it as a classic script, where `import.meta` is invalid. Keep the
-      // vendor-provided asset untouched; our own application chunks are still
-      // minified normally.
-      const ortBundle = /(?:^|\/)ort\.bundle\.min(?:\.[\w-]+)?\.mjs$/;
-      for (const minimizer of config.optimization?.minimizer ?? []) {
-        if (minimizer?.constructor?.name !== "TerserPlugin") continue;
-        const currentExclude = minimizer.options.exclude;
-        minimizer.options.exclude = currentExclude
-          ? [currentExclude, ortBundle]
-          : ortBundle;
-      }
-    }
+    // Next.js represents its production minimizer as a lazy wrapper rather
+    // than a TerserPlugin instance, so mutating minimizer.options does not work.
+    // Mark only ONNX Runtime's already-minified module before that wrapper runs.
+    if (!dev) config.plugins.push(new PreserveOrtModulePlugin());
     return config;
   },
 };
